@@ -647,36 +647,61 @@ function initTimeline(){
   });
 }
 
-// --- Section 3: Pathway Sunburst ---
+// --- Section 3: Pathway Bar Chart ---
 function initPathway(){
+  const pathways = [
+    {name:'크로마틴 리모델링', genes:'CHD8, ARID1B, KMT2A, ASH1L, KDM5B', color:'#1565c0', count:20, key:'크로마틴 리모델링'},
+    {name:'시냅스 기능', genes:'SHANK3, NRXN1, GRIN2B, SYNGAP1, NLGN3', color:'#26a69a', count:30, key:'시냅스 기능'},
+    {name:'전사 조절', genes:'TBR1, FOXP2, CUX1, ADNP, BCL11A', color:'#7b1fa2', count:25, key:'전사 조절'},
+    {name:'뉴런 이동/축삭', genes:'PTEN, DYRK1A, KATNAL2, RELN, CTNNA2', color:'#ef6c00', count:20, key:'뉴런 이동/축삭'},
+    {name:'세포 신호전달', genes:'SCN2A, CACNA1E, ANK2, CACNA1D, GRIA2', color:'#c62828', count:25, key:'세포 신호전달'}
+  ];
+
   const trace = {
-    type:'sunburst',
-    labels: PATHWAY_DATA.labels,
-    parents: PATHWAY_DATA.parents,
-    values: PATHWAY_DATA.values,
-    marker:{colors: PATHWAY_DATA.colors, line:{width:2, color:'#0f0f1a'}},
-    branchvalues:'total',
-    textinfo:'label',
-    insidetextorientation:'radial',
-    hovertemplate:'<b>%{label}</b><extra></extra>',
-    textfont:{size:11},
-    maxdepth:3
+    type:'bar',
+    orientation:'h',
+    y: pathways.map(p=>p.name),
+    x: pathways.map(p=>p.count),
+    marker:{color: pathways.map(p=>p.color), line:{width:0}},
+    text: pathways.map(p=>`${p.count}+ 유전자`),
+    textposition:'outside',
+    textfont:{size:13, color:'#e0e0e8'},
+    hovertemplate:'<b>%{y}</b><br>%{x}+ 관련 유전자<extra></extra>',
+    customdata: pathways
   };
+
+  const geneAnnotations = pathways.map((p,i)=>({
+    x: p.count + 12,
+    y: p.name,
+    text: `<span style="color:${p.color}">${p.genes}</span>`,
+    showarrow: false,
+    font:{size:11, family:'monospace', color:'#a0a0b8'},
+    xanchor:'left'
+  }));
+
   const layout = {
     ...darkLayout,
-    margin:{l:10,r:10,t:10,b:10}
+    xaxis:{
+      range:[0, 70], gridcolor:'rgba(255,255,255,0.05)',
+      title:{text:'관련 유전자 수 (추정)', font:{size:13}}
+    },
+    yaxis:{automargin:true, categoryorder:'array', categoryarray:[...pathways.map(p=>p.name)].reverse()},
+    annotations: geneAnnotations,
+    margin:{l:140,r:250,t:20,b:60},
+    hovermode:'closest'
   };
+
   Plotly.newPlot('pathway-chart', [trace], layout, plotlyConfig);
 
   document.getElementById('pathway-chart').on('plotly_click', function(data){
-    const label = data.points[0].label.replace(/<br>/g,' ');
-    const info = PATHWAY_DATA.details[label];
+    const p = data.points[0].customdata;
+    const info = PATHWAY_DATA.details[p.key];
     if(!info) return;
     const panel = document.getElementById('network-detail');
     panel.innerHTML = `
-      <h3>${label}</h3>
+      <h3>${p.name}</h3>
       <p>${info.desc}</p>
-      ${info.genes ? `<p style="margin-top:8px"><strong>구성 유전자:</strong> <span style="font-family:monospace;color:var(--accent)">${info.genes}</span></p>` : ''}
+      <p style="margin-top:8px"><strong>대표 유전자:</strong> <span style="font-family:monospace;color:var(--accent)">${p.genes}</span></p>
     `;
   });
 }
